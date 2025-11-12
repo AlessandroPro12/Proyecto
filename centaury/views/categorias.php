@@ -7,7 +7,10 @@ ini_set('display_errors', 1);
 // Ajusta la ruta según tu estructura
 require_once __DIR__ . '/../config/db.php';
 
-
+/* ========= RUTAS CONSISTENTES =========
+   - Guardar SIEMPRE en /img/categorias (raíz del proyecto)
+   - Desde views/ para mostrar: ../img/categorias
+*/
 define('ROOT_PATH', dirname(__DIR__));                 // .../tu-proyecto
 define('CATS_IMG_DIR', ROOT_PATH . '/img/categorias'); // ruta en disco
 define('CATS_IMG_URL_FROM_VIEWS', '../img/categorias'); // URL desde /views
