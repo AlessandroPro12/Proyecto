@@ -137,8 +137,7 @@ footer {
       <?php if ($_SESSION['rol'] === 'admin'): ?>
         <a href="views/productos.php">💻Productos</a>
         <a href="contacto.php">📱Contacto</a>
-        <a href="views/carrito.php">
-          🛒 Carrito
+        <a href="views/carrito.php">🛒 Carrito
           <?php if (!empty($_SESSION['carrito'])): ?>
             <span class="badge bg-light text-dark"><?= count($_SESSION['carrito']) ?></span>
           <?php endif; ?>
