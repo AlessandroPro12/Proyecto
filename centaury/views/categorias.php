@@ -189,15 +189,22 @@ img.thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px s
               <tr><th>ID</th><th>Imagen</th><th>Nombre</th><th>Acciones</th></tr>
             </thead>
             <tbody>
-              <?php foreach ($cats as $c): ?>
+              <?php foreach ($cats as $index => $c): ?>
                 <tr>
-                  <td><?= (int)$c['id'] ?></td>
+                  <!-- Número consecutivo en pantalla -->
+                  <td><?= $index + 1 ?></td>
+
+                  <!-- Imagen -->
                   <td>
                     <img class="thumb"
-                         src="<?= CATS_IMG_URL_FROM_VIEWS . '/' . htmlspecialchars($c['imagen'] ?: 'default.png') ?>"
-                         alt="">
+                        src="<?= CATS_IMG_URL_FROM_VIEWS . '/' . htmlspecialchars($c['imagen'] ?: 'default.png') ?>"
+                        alt="">
                   </td>
+
+                  <!-- Nombre -->
                   <td><?= htmlspecialchars($c['nombre']) ?></td>
+
+                  <!-- Acciones -->
                   <td>
                     <a class="btn btn-sm btn-warning text-dark" href="categorias.php?edit=<?= (int)$c['id'] ?>">✏️ Editar</a>
                     <form class="d-inline" method="post" onsubmit="return confirm('¿Eliminar esta categoría?');">
