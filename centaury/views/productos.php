@@ -201,7 +201,7 @@ body {
         <table class="table table-striped align-middle">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>#</th>
               <th>Imagen</th>
               <th>Nombre</th>
               <th>Categoría</th>
@@ -211,9 +211,11 @@ body {
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($productos as $p): ?>
+            <?php foreach ($productos as $index => $p): ?>
             <tr>
-              <td><?= $p['id'] ?></td>
+              <!-- Número consecutivo en pantalla -->
+              <td><?= $index + 1 ?></td>
+
               <td>
                 <img
                   src="<?= urlImgProducto($p['imagen'] ?? null) ?>"
@@ -224,6 +226,7 @@ body {
               <td>$<?= number_format($p['precio'], 0, ',', '.') ?></td>
               <td><?= $p['stock'] ?></td>
               <td>
+                <!-- Aquí sí sigues usando el ID real -->
                 <a href="editar_producto.php?id=<?= $p['id'] ?>" class="btn btn-sm btn-warning text-dark">✏️ Editar</a>
                 <a href="#" class="btn btn-sm btn-danger" data-id="<?= $p['id'] ?>" onclick="return eliminarProducto(this);">🗑️ Eliminar</a>
               </td>
