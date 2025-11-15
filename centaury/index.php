@@ -112,6 +112,10 @@ header nav a { color: white; margin: 0 10px; text-decoration: none; font-weight:
 .card_x .title { font-weight: 600; margin-bottom: 5px; }
 .card_x .price { color: #16a34a; font-weight: 700; margin-bottom: 10px; }
 .card_x .meta { display: flex; justify-content: space-between; align-items: center; }
+.card_x .meta-buttons {
+  display: flex;
+  gap: 6px;
+}
 .card_x .meta small { color: #64748b; }
 .card_x button {
   background-color: #6366f1; border: none; color: white; border-radius: 6px;
@@ -178,13 +182,23 @@ footer {
           <div class="price">$<?= number_format($p['precio'], 0, ',', '.') ?> COP</div>
           <div class="meta">
             <small><?= htmlspecialchars($p['categoria'] ?? 'Sin categoría') ?></small>
-            <button
-              class="btn-agregar"
-              data-id="<?= $p['id'] ?>"
-              data-nombre="<?= htmlspecialchars($p['nombre']) ?>"
-              data-precio="<?= $p['precio'] ?>">
-              🛒 Agregar
-            </button>
+            <div class="meta-buttons">
+              <button
+                class="btn-agregar"
+                data-id="<?= $p['id'] ?>"
+                data-nombre="<?= htmlspecialchars($p['nombre']) ?>"
+                data-precio="<?= $p['precio'] ?>">
+                🛒 Agregar
+              </button>
+
+              <button
+                class="btn-favorito"
+                data-id="<?= $p['id'] ?>"
+                data-nombre="<?= htmlspecialchars($p['nombre']) ?>"
+                data-precio="<?= $p['precio'] ?>">
+                ⭐ Favorito
+              </button>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -232,6 +246,27 @@ document.querySelectorAll('.btn-agregar').forEach(btn => {
       alert("✅ Producto agregado al carrito");
     } else {
       alert("❌ Error al agregar al carrito");
+    }
+  });
+});
+</script>
+<script>
+document.querySelectorAll('.btn-favorito').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const nombre = btn.dataset.nombre;
+    const precio = btn.dataset.precio;
+
+    const res = await fetch('agregar_favorito.php', {
+      method: 'POST',
+      body: new URLSearchParams({ id, nombre, precio })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert("⭐ Producto agregado a favoritos");
+    } else {
+      alert("❌ Error al agregar a favoritos");
     }
   });
 });
