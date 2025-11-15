@@ -96,83 +96,101 @@ class AdminModel extends DBConfig {
 
     /* ========== LOGIN ========== */
     public function login($usuario, $password) {
-    $sql = "SELECT * FROM usuarios WHERE usuario = '$usuario' LIMIT 1";
-    $result = $this->Consultas($sql);
-    if ($result) {
-        $user = $result[0];
-        if (password_verify($password, $user['password']) || $password === $user['password']) {
-            return $user;
+        $sql = "SELECT * FROM usuarios WHERE usuario = :usuario LIMIT 1";
+        $stmt = $this->db_link->prepare($sql);
+        $stmt->execute([':usuario' => $usuario]);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($result) {
+            $user = $result[0];
+            // Acepta contraseña hasheada o, si tienes usuarios viejos, texto plano
+            if (password_verify($password, $user['password']) || $password === $user['password']) {
+                return $user; // contiene id, cliente_id, rol, etc.
+            }
         }
-    }
-    return false;
-}
-
-public function registrarUsuario($usuario, $email, $password, $rol = 'usuario') {
-    try {
-        // Validaciones básicas
-        if (empty($usuario) || empty($email) || empty($password)) {
-            throw new Exception("Todos los campos son obligatorios.");
-        }
-
-        // Evitar inyección o manipulación
-        $usuario = htmlspecialchars(strip_tags($usuario));
-        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
-
-        // Comprobar si el usuario ya existe
-        $sqlCheck = "SELECT id FROM usuarios WHERE usuario = :usuario OR email = :email";
-        $stmt = $this->db_link->prepare($sqlCheck);
-        $stmt->execute([':usuario' => $usuario, ':email' => $email]);
-        if ($stmt->rowCount() > 0) {
-            throw new Exception("El usuario o correo ya está registrado.");
-        }
-
-        // Crear el cliente asociado
-        $sqlCliente = "INSERT INTO clientes (nombre, telefono, email, direccion, created_at)
-                       VALUES (:nombre, '', :email, '', NOW())";
-        $stmtCliente = $this->db_link->prepare($sqlCliente);
-        $stmtCliente->execute([':nombre' => $usuario, ':email' => $email]);
-        $cliente_id = $this->db_link->lastInsertId();
-
-        // Hashear contraseña segura
-        $hash = password_hash($password, PASSWORD_BCRYPT);
-
-        // Insertar usuario con rol siempre fijo a 'usuario'
-        $sqlUsuario = "INSERT INTO usuarios (usuario, email, password, rol, cliente_id)
-                       VALUES (:usuario, :email, :password, 'usuario', :cliente_id)";
-        $stmtUsuario = $this->db_link->prepare($sqlUsuario);
-        $stmtUsuario->execute([
-            ':usuario' => $usuario,
-            ':email' => $email,
-            ':password' => $hash,
-            ':cliente_id' => $cliente_id
-        ]);
-
-        return true;
-
-    } catch (Exception $e) {
-        $this->error_message = $e->getMessage();
         return false;
     }
-}
+
+    /* ========== REGISTRO DE USUARIOS ========== */
+    public function registrarUsuario($usuario, $email, $password, $rol = 'usuario') {
+        try {
+            // Validaciones básicas
+            if (empty($usuario) || empty($email) || empty($password)) {
+                throw new Exception("Todos los campos son obligatorios.");
+            }
+
+            // Sanitizar
+            $usuario = htmlspecialchars(strip_tags($usuario));
+            $email   = filter_var($email, FILTER_SANITIZE_EMAIL);
+
+            // Comprobar si el usuario ya existe
+            $sqlCheck = "SELECT id FROM usuarios WHERE usuario = :usuario OR email = :email";
+            $stmt = $this->db_link->prepare($sqlCheck);
+            $stmt->execute([':usuario' => $usuario, ':email' => $email]);
+            if ($stmt->rowCount() > 0) {
+                throw new Exception("El usuario o correo ya está registrado.");
+            }
+
+            // Crear el cliente asociado
+            // my_row_id es la PK AUTO_INCREMENT invisible, id puede ser NULL
+            $sqlCliente = "INSERT INTO clientes (nombre, telefono, email, direccion, created_at)
+                           VALUES (:nombre, '', :email, '', NOW())";
+            $stmtCliente = $this->db_link->prepare($sqlCliente);
+            $stmtCliente->execute([':nombre' => $usuario, ':email' => $email]);
+            $cliente_id = $this->db_link->lastInsertId(); // = clientes.my_row_id
+
+            // Hashear contraseña segura
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+
+            // Insertar usuario con referencia al cliente
+            $sqlUsuario = "INSERT INTO usuarios (usuario, email, password, rol, cliente_id)
+                           VALUES (:usuario, :email, :password, :rol, :cliente_id)";
+            $stmtUsuario = $this->db_link->prepare($sqlUsuario);
+            $stmtUsuario->execute([
+                ':usuario'    => $usuario,
+                ':email'      => $email,
+                ':password'   => $hash,
+                ':rol'        => $rol,
+                ':cliente_id' => $cliente_id
+            ]);
+
+            return true;
+
+        } catch (Exception $e) {
+            $this->error_message = $e->getMessage();
+            return false;
+        }
+    }
 
     /* ========== CLIENTES ========== */
     public function listarClientes() {
-        return $this->Consultas("SELECT * FROM clientes ORDER BY id DESC");
+        // Usamos my_row_id como id para la vista
+        $sql = "SELECT my_row_id AS id,
+                       nombre,
+                       telefono,
+                       email AS correo,
+                       direccion
+                FROM clientes
+                ORDER BY my_row_id DESC";
+        return $this->Consultas($sql);
     }
 
     public function agregarCliente($nombre, $telefono, $correo, $direccion) {
-        $sql = "INSERT INTO clientes (nombre, telefono, correo, direccion)
+        // En la tabla la columna se llama "email", no "correo"
+        $sql = "INSERT INTO clientes (nombre, telefono, email, direccion)
                 VALUES (?, ?, ?, ?)";
         return $this->Operaciones($sql, [$nombre, $telefono, $correo, $direccion]);
     }
 
     public function actualizarCliente($id, $nombre, $telefono, $correo, $direccion) {
-        $sql = "UPDATE clientes SET nombre=?, telefono=?, correo=?, direccion=? WHERE id=?";
+        $sql = "UPDATE clientes
+                SET nombre = ?, telefono = ?, email = ?, direccion = ?
+                WHERE my_row_id = ?";
         return $this->Operaciones($sql, [$nombre, $telefono, $correo, $direccion, $id]);
     }
 
     public function eliminarCliente($id) {
-        $sql = "DELETE FROM clientes WHERE id=?";
+        $sql = "DELETE FROM clientes WHERE my_row_id = ?";
         return $this->Operaciones($sql, [$id]);
     }
 
@@ -188,71 +206,84 @@ public function registrarUsuario($usuario, $email, $password, $rol = 'usuario') 
     }
 
     public function actualizarProducto($id, $nombre, $descripcion, $precio, $stock) {
-        $sql = "UPDATE productos SET nombre=?, descripcion=?, precio=?, stock=? WHERE id=?";
+        $sql = "UPDATE productos
+                SET nombre = ?, descripcion = ?, precio = ?, stock = ?
+                WHERE id = ?";
         return $this->Operaciones($sql, [$nombre, $descripcion, $precio, $stock, $id]);
     }
 
     public function eliminarProducto($id) {
-        $sql = "DELETE FROM productos WHERE id=?";
+        $sql = "DELETE FROM productos WHERE id = ?";
         return $this->Operaciones($sql, [$id]);
     }
 
     /* ========== VENTAS / PEDIDOS ========== */
     public function registrarVenta($cliente_id, $items) {
-    $total = 0;
-    foreach ($items as $item) {
-        $total += $item['precio'] * $item['cantidad'];
-    }
+        $total = 0;
+        foreach ($items as $item) {
+            $total += $item['precio'] * $item['cantidad'];
+        }
 
-    // Insertar pedido principal
-    $sql = "INSERT INTO pedidos (cliente_id, total, fecha, estado)
-            VALUES (:cliente_id, :total, NOW(), 'pendiente')";
-    $stmt = $this->db_link->prepare($sql);
-    $stmt->execute(['cliente_id' => $cliente_id, 'total' => $total]);
-    $pedido_id = $this->db_link->lastInsertId();
-
-    // Insertar detalle del pedido
-    foreach ($items as $item) {
-        $subtotal = $item['precio'] * $item['cantidad'];
-        $sql = "INSERT INTO pedido_lineas (pedido_id, producto_id, cantidad, precio, subtotal)
-                VALUES (:pedido_id, :producto_id, :cantidad, :precio, :subtotal)";
+        // Pedido principal
+        $sql = "INSERT INTO pedidos (cliente_id, total, fecha, estado)
+                VALUES (:cliente_id, :total, NOW(), 'pendiente')";
         $stmt = $this->db_link->prepare($sql);
-        $stmt->execute([
-            'pedido_id' => $pedido_id,
-            'producto_id' => $item['producto_id'],
-            'cantidad' => $item['cantidad'],
-            'precio' => $item['precio'],
-            'subtotal' => $subtotal
-        ]);
+        $stmt->execute(['cliente_id' => $cliente_id, 'total' => $total]);
+        $pedido_id = $this->db_link->lastInsertId();
 
-        // Actualizar stock
-        $this->Operaciones("UPDATE productos 
-                            SET stock = stock - {$item['cantidad']} 
-                            WHERE id = {$item['producto_id']}");
+        // Detalle del pedido
+        foreach ($items as $item) {
+            $subtotal = $item['precio'] * $item['cantidad'];
+            $sql = "INSERT INTO pedido_lineas (pedido_id, producto_id, cantidad, precio, subtotal)
+                    VALUES (:pedido_id, :producto_id, :cantidad, :precio, :subtotal)";
+            $stmt = $this->db_link->prepare($sql);
+            $stmt->execute([
+                'pedido_id'   => $pedido_id,
+                'producto_id' => $item['producto_id'],
+                'cantidad'    => $item['cantidad'],
+                'precio'      => $item['precio'],
+                'subtotal'    => $subtotal
+            ]);
+
+            // Actualizar stock
+            $this->Operaciones(
+                "UPDATE productos SET stock = stock - ? WHERE id = ?",
+                [$item['cantidad'], $item['producto_id']]
+            );
+        }
+
+        return $pedido_id;
     }
 
-    return $pedido_id;
-}
+    // Pedidos de un usuario (cliente)
+    public function listarPedidosUsuario($cliente_id) {
+        $sql = "SELECT * FROM pedidos 
+                WHERE cliente_id = :cliente_id 
+                ORDER BY fecha DESC";
+        $stmt = $this->db_link->prepare($sql);
+        $stmt->execute(['cliente_id' => $cliente_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-   public function listarPedidosUsuario($usuario_id) {
-    $sql = "SELECT * FROM pedidos 
-            WHERE cliente_id = :usuario_id 
-            ORDER BY fecha DESC";
-    $stmt = $this->db_link->prepare($sql);
-    $stmt->execute(['usuario_id' => $usuario_id]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
+    // Pedidos para el panel admin
     public function listarPedidos() {
-    $sql = "SELECT p.id, c.nombre AS cliente, p.total, p.fecha, p.estado
-            FROM pedidos p
-            JOIN usuarios c ON p.cliente_id = c.id
-            ORDER BY p.fecha DESC";
-    return $this->Consultas($sql);
-}
-    
+        $sql = "SELECT p.id,
+                       c.nombre AS cliente,
+                       p.total,
+                       p.fecha,
+                       p.estado
+                FROM pedidos p
+                JOIN clientes c ON p.cliente_id = c.my_row_id
+                ORDER BY p.fecha DESC";
+        return $this->Consultas($sql);
+    }
+
     public function obtenerDetallePedido($pedido_id) {
-        $sql = "SELECT pl.id, pr.nombre, pl.cantidad, pl.precio, pl.subtotal
+        $sql = "SELECT pl.id,
+                       pr.nombre,
+                       pl.cantidad,
+                       pl.precio,
+                       pl.subtotal
                 FROM pedido_lineas pl
                 JOIN productos pr ON pl.producto_id = pr.id
                 WHERE pl.pedido_id = ?";
