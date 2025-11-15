@@ -87,9 +87,9 @@ $favoritos = $_SESSION['favoritos'];
                         <td>$<?= number_format($subtotal, 0, ',', '.') ?></td>
                         <td>
                             <a
-                              href="quitar_carrito.php?id=<?= urlencode((string)$IDproductos) ?>&csrf=<?= urlencode($csrfToken) ?>"
-                              class="btn btn-sm btn-danger"
-                              title="Quitar del carrito"
+                            href="quitar_producto.php?id=<?= urlencode((string)$IDproductos) ?>&csrf=<?= urlencode($csrfToken) ?>"
+                            class="btn btn-sm btn-danger"
+                            title="Quitar del carrito"
                             >❌</a>
                         </td>
                     </tr>
@@ -145,9 +145,9 @@ $favoritos = $_SESSION['favoritos'];
                                         <td>
                                             <!-- Quitar de favoritos -->
                                             <a
-                                              href="quitar_favorito.php?id=<?= urlencode((string)$favId) ?>&csrf=<?= urlencode($csrfToken) ?>"
-                                              class="btn btn-sm btn-outline-danger"
-                                              title="Quitar de favoritos"
+                                            href="quitar_producto.php?id=<?= urlencode((string)$favId) ?>&csrf=<?= urlencode($csrfToken) ?>"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Quitar de favoritos"
                                             >❌</a>
                                             <!-- (Opcional) Ver/Comprar -->
                                             <a
