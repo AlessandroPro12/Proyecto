@@ -1,20 +1,14 @@
 <?php
 session_start();
+require_once __DIR__ . '/../models/models_admin.php';
 
-// Después de verificar el login exitoso:
-$_SESSION['usuario'] = $user['usuario'];
-$_SESSION['rol'] = $user['rol']; // "admin" o "usuario"
-$_SESSION['id'] = $user['id'];
-
-require_once '../models/models_admin.php';
+$admin = new AdminModel();
+$admin->conexion();
 
 $mensaje_error = "";
 $mensaje_exito = "";
 
-$admin = new AdminModel();
-$conn = $admin->conexion();
-
-// 🧩 Token CSRF (previene ataques cross-site)
+// Token CSRF
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -26,16 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("Token CSRF inválido. Recarga la página.");
     }
 
-    // 🧩 LOGIN
-    if ($_POST['accion'] === 'login') {
-        $usuario = trim($_POST['usuario']);
-        $password = trim($_POST['password']);
+    $accion = $_POST['accion'] ?? '';
+
+    // LOGIN
+    if ($accion === 'login') {
+        $usuario  = trim($_POST['usuario'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+
         $user = $admin->login($usuario, $password);
 
         if ($user) {
-            $_SESSION['usuario'] = $user['usuario'];
-            $_SESSION['rol'] = $user['rol'];
-            $_SESSION['id'] = $user['id'];
+            // Guardamos datos importantes en sesión
+            $_SESSION['usuario']     = $user['usuario'];
+            $_SESSION['rol']         = $user['rol'];
+            $_SESSION['id_usuario']  = $user['id'];          // id de la tabla usuarios
+            $_SESSION['cliente_id']  = $user['cliente_id'];  // id de la tabla clientes
 
             if ($user['rol'] === 'admin') {
                 header('Location: dashboard.php');
@@ -48,13 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 🧩 REGISTRO (SIN reCAPTCHA)
-    if ($_POST['accion'] === 'registrar') {
-        $usuario  = trim($_POST['usuario']);
-        $email    = trim($_POST['email']);
-        $password = trim($_POST['password']);
+    // REGISTRO
+    if ($accion === 'registrar') {
+        $usuario  = trim($_POST['usuario'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
+        $password = trim($_POST['password'] ?? '');
 
-        // Validaciones básicas
         if (strlen($usuario) < 3 || strlen($password) < 6) {
             $mensaje_error = "El usuario o la contraseña son demasiado cortos.";
         } else {
@@ -64,11 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $mensaje_error = "No se pudo registrar: " . $admin->error_message;
             }
+        }
     }
 }
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -77,11 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         <?php echo file_get_contents('../assets/css/login.css'); ?>
 
-        /* Transiciones suaves */
         .hidden-form { display: none; opacity: 0; transform: scale(0.98); transition: all 0.3s ease; }
         .active-form { display: block; opacity: 1; transform: scale(1); transition: all 0.3s ease; }
 
-        /* Ajuste visual para etiquetas flotantes */
         .input-wrapper label {
             position: absolute;
             left: 16px;
@@ -121,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="success-message show"><?= htmlspecialchars($mensaje_exito) ?></div>
         <?php endif; ?>
 
-        <!-- 🔹 FORMULARIO LOGIN -->
+        <!-- FORM LOGIN -->
         <form method="POST" id="formLogin" class="active-form">
             <input type="hidden" name="accion" value="login">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -147,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </form>
 
-        <!-- 🔹 FORMULARIO REGISTRO -->
+        <!-- FORM REGISTRO -->
         <form method="POST" id="formRegistro" class="hidden-form">
             <input type="hidden" name="accion" value="registrar">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -182,8 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-
-
 <script>
 const formLogin = document.getElementById('formLogin');
 const formRegistro = document.getElementById('formRegistro');
@@ -210,7 +203,7 @@ document.getElementById('mostrarLogin').onclick = e => {
     subtitulo.textContent = "Accede a tu cuenta";
 };
 
-// Animación de etiquetas flotantes
+// Etiquetas flotantes
 document.querySelectorAll('.input-wrapper input').forEach(input => {
   input.addEventListener('input', () => {
     input.classList.toggle('has-value', input.value.trim() !== '');
