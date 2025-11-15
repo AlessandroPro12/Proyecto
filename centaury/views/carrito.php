@@ -145,7 +145,7 @@ $favoritos = $_SESSION['favoritos'];
                                         <td>
                                             <!-- Quitar de favoritos -->
                                             <a
-                                            href="quitar_producto.php?id=<?= urlencode((string)$favId) ?>&csrf=<?= urlencode($csrfToken) ?>"
+                                            href="quitar_favorito.php?id=<?= urlencode((string)$favId) ?>&csrf=<?= urlencode($csrfToken) ?>"
                                             class="btn btn-sm btn-outline-danger"
                                             title="Quitar de favoritos"
                                             >❌</a>
