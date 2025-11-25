@@ -210,19 +210,29 @@ footer {
   <h3 class="section mb-4 mt-5">Categorías</h3>
 
   <div class="cats">
-    <?php if (count($categorias) > 0): ?>
-      <?php foreach ($categorias as $cat): ?>
-        <div class="cat cat_x">
-          <img
-            src="<?= urlImgCategoria($cat['imagen'] ?? null) ?>"
-            alt="<?= htmlspecialchars($cat['nombre']) ?>">
-          <div><button><?= htmlspecialchars($cat['nombre']) ?></button></div>
-        </div>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <p class="text-center text-muted">No hay categorías registradas.</p>
-    <?php endif; ?>
-  </div>
+  <?php if (!empty($categorias)): ?>
+    <?php foreach ($categorias as $cat): ?>
+      <a
+        href="productos_tienda.php?cat=<?= (int)$cat['id'] ?>"
+        rel="noopener"
+        class="cat cat_x text-decoration-none d-block"
+        style="cursor:pointer;text-align:center;"
+      >
+        <img
+          src="./img/categorias/<?= htmlspecialchars($cat['imagen'] ?? 'default.png') ?>"
+          alt="<?= htmlspecialchars($cat['nombre']) ?>"
+          style="width:70px;height:70px;object-fit:contain;display:block;margin:0 auto 10px;border-radius:8px;"
+        >
+        <span class="d-inline-block px-3 py-2 rounded"
+              style="background:#f1f5f9;color:#1e293b;font-weight:600;display:inline-block;">
+          <?= htmlspecialchars($cat['nombre']) ?>
+        </span>
+      </a>
+    <?php endforeach; ?>
+  <?php else: ?>
+    <p class="text-center text-muted">No hay categorías registradas.</p>
+  <?php endif; ?>
+</div>
 </main>
 
 <footer>
