@@ -14,19 +14,11 @@ class DBConfig {
     private $rowsCant = 0;
 
     // ====== CONEXIÓN A LA BASE DE DATOS ======
-<<<<<<< HEAD
         public function conexion(
             $host = 'localhost',
             $user = 'root',
             $pass = '123456789',
             $db   = 'db2'
-=======
-    public function conexion(
-        $host = 'db-venta.mysql.database.azure.com',
-        $user = 'admin12',
-        $pass = 'Alexander22',
-        $db   = 'db2'
->>>>>>> 05b0f60fb022e9e47d1d995e3f29c3431e22f156
     ) {
         $this->host = $host;
         $this->user = $user;
